@@ -1,0 +1,10 @@
+CREATE TYPE "BookingMealPlan" AS ENUM (
+    'NO_MEALS',
+    'BREAKFAST_BUFFET',
+    'BREAKFAST_AND_DINNER',
+    'ALL_INCLUSIVE'
+);
+
+ALTER TABLE "bookings"
+ADD COLUMN "meal_plan" "BookingMealPlan" NOT NULL DEFAULT 'NO_MEALS',
+ADD COLUMN "meal_guests" INTEGER NOT NULL DEFAULT 1;

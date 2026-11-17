@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  ADMIN
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum BedType {
+  DOUBLE_BED
+  TWO_SINGLE_BEDS
+  THREE_SINGLE_BEDS
+}
+
+enum MealPlan {
+  BREAKFAST_INCLUDED
+  NO_MEALS
+  ALL_INCLUSIVE
+}
+
+enum BookingMealPlan {
+  NO_MEALS
+  BREAKFAST_BUFFET
+  BREAKFAST_AND_DINNER
+  ALL_INCLUSIVE
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  phone        String
+  role         Role      @default(CLIENT)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  bookings     Booking[]
+
+  @@map("users")
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  rooms       Room[]
+
+  @@map("categories")
+}
+
+model Room {
+  id            Int           @id @default(autoincrement())
+  roomNumber    String        @unique @map("room_number")
+  categoryId    Int           @map("category_id")
+  category      Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  capacity      Int
+  pricePerNight Decimal       @map("price_per_night") @db.Decimal(10, 2)
+  isAvailable   Boolean       @default(true) @map("is_available")
+  images        String?
+  bedType       BedType?      @map("bed_type")
+  mealPlan      MealPlan?     @map("meal_plan")
+  amenities     RoomAmenity[]
+  bookings      Booking[]
+
+  @@map("rooms")
+}
+
+model Amenity {
+  id    Int           @id @default(autoincrement())
+  name  String        @unique
+  icon  String?
+  rooms RoomAmenity[]
+
+  @@map("amenities")
+}
+
+model RoomAmenity {
+  roomId    Int     @map("room_id")
+  amenityId Int     @map("amenity_id")
+  room      Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, amenityId])
+  @@map("room_amenities")
+}
+
+model Booking {
+  id         Int             @id @default(autoincrement())
+  userId     Int             @map("user_id")
+  roomId     Int             @map("room_id")
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room       Room            @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  checkIn    DateTime        @map("check_in") @db.Date
+  checkOut   DateTime        @map("check_out") @db.Date
+  totalPrice Decimal         @map("total_price") @db.Decimal(10, 2)
+  mealPlan   BookingMealPlan @default(NO_MEALS) @map("meal_plan")
+  mealGuests Int             @default(1) @map("meal_guests")
+  comment    String?
+  status     BookingStatus   @default(CONFIRMED)
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@index([roomId, checkIn, checkOut])
+  @@map("bookings")
+}
